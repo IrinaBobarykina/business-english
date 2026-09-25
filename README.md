@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Business English
 
-## Getting Started
+Тренажёр бизнес-английского для PM и разработчиков. После урока пользователь добавляет новые слова, а приложение предлагает перевести на английский типичные рабочие фразы, в которых эти слова нужны, и проверяет перевод с помощью AI.
 
-First, run the development server:
+Пет-проект и портфолио-кейс: продукт ведётся как в компании (PRD, дизайн, трекер задач, decision log), роль PM — автор проекта, код пишет Claude (AI-разработчик).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+> Статус: MVP v0.1 в разработке. Готов каркас: вход по PIN-коду, схема базы данных, автодеплой.
+
+## Стек
+
+| Слой | Выбор |
+|---|---|
+| Приложение | [Next.js 16](https://nextjs.org) (App Router, TypeScript), Tailwind CSS 4 |
+| База данных | [Supabase](https://supabase.com) (Postgres) |
+| AI | LLM API — будет выбран позже |
+| Хостинг | [Vercel](https://vercel.com), автодеплой из ветки `main`, функции в регионе Франкфурт (`fra1`) |
+
+## Как устроено
+
+- **Логика на сервере, фронт тонкий.** Данные читаются и меняются только в серверном коде (Server Components, Server Actions). Так позже можно будет добавить мобильный клиент к тому же серверу.
+- **Вход по PIN-коду, без учётных записей** (v0.1 — один пользователь). PIN-код хранится в переменной окружения `APP_PIN`. После входа браузер получает подписанную cookie на 30 дней. После 5 неверных попыток за 15 минут вход временно закрывается.
+- **База доступна только серверу.** Секретный ключ Supabase есть только на сервере; в базе включён RLS без политик, поэтому публичный ключ Supabase доступа к данным не даёт.
+- **Секреты не хранятся в коде.** Все ключи — в переменных окружения (см. `.env.example`).
+
+### Схема базы данных v0.1
+
+Файл: [`supabase/migrations/20260925120000_init.sql`](supabase/migrations/20260925120000_init.sql).
+
+| Таблица | Назначение |
+|---|---|
+| `folders` | папки для слов: уроки, темы |
+| `words` | слова и фразы с урока: слово, перевод, заметка, папка; дубликаты не допускаются |
+| `training_sessions` | тренировки: набор слов, число фраз (5 / 10 / 15), начало и завершение |
+| `attempts` | история ответов: фраза, ответ, оценка, подсказки, эталон, альтернативы, объяснение; признак ошибки для повторения |
+| `pin_failures` | неверные попытки ввода PIN-кода, для защиты от перебора |
+
+### Структура кода
+
+```
+src/
+  app/
+    page.tsx            главная (сейчас — состояние каркаса)
+    login/              экран PIN-кода и серверное действие входа
+    actions.ts          выход
+  lib/
+    config.ts           чтение переменных окружения
+    session.ts          подпись и проверка cookie, сравнение PIN-кода
+    auth.ts             проверка входа для серверного кода (requireSession)
+    pin-throttle.ts     ограничение попыток ввода PIN-кода
+    supabase.ts         серверный клиент Supabase
+  proxy.ts              без входа открывается только /login
+supabase/migrations/    SQL-миграции базы данных
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Переменные окружения
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Переменная | Что это | Где взять |
+|---|---|---|
+| `APP_PIN` | PIN-код для входа, 4–12 цифр | придумать; лучше 6 цифр и больше |
+| `SESSION_SECRET` | секрет для подписи cookie, от 32 символов | сгенерировать пароль в менеджере паролей |
+| `SUPABASE_URL` | адрес проекта Supabase | Supabase → кнопка **Connect** или **Project Settings → Data API** |
+| `SUPABASE_SECRET_KEY` | секретный ключ Supabase (`sb_secret_…`) | Supabase → **Project Settings → API Keys** |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Смена `APP_PIN` или `SESSION_SECRET` завершает все открытые сессии.
 
-## Learn More
+## Первичная настройка
 
-To learn more about Next.js, take a look at the following resources:
+1. **Supabase.** Создать проект в регионе *Central EU (Frankfurt)*. Открыть **SQL Editor**, вставить целиком файл миграции из `supabase/migrations/` и нажать **Run**.
+2. **Vercel.** **Add New → Project**, импортировать репозиторий `business-english`, до нажатия **Deploy** добавить четыре переменные окружения из таблицы выше. После этого каждый push в `main` деплоится автоматически, а для каждого pull request создаётся preview-ссылка.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Локальный запуск
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Нужен Node.js 20.9 или новее.
 
-## Deploy on Vercel
+```bash
+npm install
+cp .env.example .env.local   # заполнить значения
+npm run dev                  # http://localhost:3000
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Проверки перед отправкой изменений: `npm run lint` и `npm run build`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Процесс
+
+- Задачи ведутся в трекере (Notion), документация — в вики (Obsidian). Номер задачи — `ET-N`.
+- Каждая задача — отдельная ветка `et-N-кратко` и pull request; PM принимает работу по критериям приёмки и сливает PR в `main`.
+- Изменения базы данных — только новыми файлами в `supabase/migrations/`; уже выполненные миграции не редактируются.
