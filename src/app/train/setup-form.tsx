@@ -78,6 +78,13 @@ export function SetupForm({
             Слов меньше, чем фраз: некоторые слова встретятся несколько раз в разном рабочем контексте.
           </p>
         )}
+        <p className="flex gap-2 text-sm leading-[1.45] text-muted">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-px shrink-0">
+            <path d="M3 12a9 9 0 1 0 3-6.7" />
+            <path d="M3 4v5h5" />
+          </svg>
+          Слова, в которых раньше были ошибки, попадут в сессию чаще.
+        </p>
         {state?.error && <ErrorBox>{state.error}</ErrorBox>}
       </main>
 

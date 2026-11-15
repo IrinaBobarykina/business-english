@@ -4,6 +4,7 @@ import { ErrorBox, Page, PlusIcon, buttonPrimary, buttonSecondary } from "@/comp
 import { requireSession } from "@/lib/auth";
 import { wordsRu } from "@/lib/plural";
 import { listFolders, type Folder } from "@/lib/folders";
+import { loadRepetition } from "@/lib/training";
 import { listWords, searchWords, type Word } from "@/lib/words";
 import { FlashNotice } from "./flash-notice";
 import { SearchBox } from "./search-box";
@@ -63,7 +64,19 @@ function EmptyState() {
   );
 }
 
-function WordRow({ word, folderName }: { word: Word; folderName?: string }) {
+function RepeatBadge() {
+  return (
+    <span className="flex h-[26px] shrink-0 items-center gap-1.5 rounded-full bg-warn-bg px-2.5 text-[13px] font-medium text-orange-ink">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 12a9 9 0 1 0 3-6.7" />
+        <path d="M3 4v5h5" />
+      </svg>
+      повторить
+    </span>
+  );
+}
+
+function WordRow({ word, folderName, needsRepeat }: { word: Word; folderName?: string; needsRepeat?: boolean }) {
   const details = [word.translation, folderName].filter(Boolean).join(" · ");
   return (
     <li className="border-b border-line">
@@ -72,6 +85,7 @@ function WordRow({ word, folderName }: { word: Word; folderName?: string }) {
           <span className="text-[17px] font-medium break-words group-hover:text-accent">{word.term}</span>
           {details && <span className="text-sm break-words text-muted">{details}</span>}
         </span>
+        {needsRepeat && <RepeatBadge />}
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-line-strong">
           <path d="M9 6l6 6-6 6" />
         </svg>
@@ -152,6 +166,12 @@ export default async function WordsPage({ searchParams }: PageProps<"/">) {
     folders = [];
   }
   const folderNames = new Map(folders.map((f) => [f.id, f.name]));
+  let repetition: Awaited<ReturnType<typeof loadRepetition>> = new Map();
+  try {
+    repetition = await loadRepetition();
+  } catch {
+    repetition = new Map();
+  }
   const activeFolder = folders.find((f) => f.id === params.folder) ?? null;
 
   const inScope = activeFolder ? words.filter((w) => w.folder_id === activeFolder.id) : words;
@@ -191,6 +211,7 @@ export default async function WordsPage({ searchParams }: PageProps<"/">) {
                 key={word.id}
                 word={word}
                 folderName={activeFolder ? undefined : (word.folder_id ? folderNames.get(word.folder_id) : undefined)}
+                needsRepeat={repetition.get(word.id)?.needsRepeat}
               />
             ))}
           </ul>

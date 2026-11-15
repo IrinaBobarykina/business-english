@@ -1,6 +1,7 @@
 import "server-only";
 import { AiUnavailableError, getAi, type CheckResult, type GeneratedPhrase, type Verdict } from "@/lib/ai";
 import { UUID, db } from "@/lib/db";
+import { repetitionByWord, weightedPick, type WordRepetition } from "@/lib/repetition";
 import { getWord, listWords, type Word } from "@/lib/words";
 
 // Тренировка «Как сказать на английском?» (US-4): сессия, фразы, проверка и сохранение ответов.
@@ -31,31 +32,24 @@ const SESSION_COLUMNS = "id, folder_id, phrase_count, phrases, current_index, st
 
 export class TrainingError extends Error {}
 
-function shuffle<T>(items: T[]): T[] {
-  const a = [...items];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
+/** Статистика повторения по всем словам (US-5): вес для выбора и метка «повторить». */
+export async function loadRepetition(): Promise<Map<string, WordRepetition>> {
+  const { data, error } = await db()
+    .from("attempts")
+    .select("word_id, verdict, hints_used, created_at")
+    .order("created_at", { ascending: false })
+    .limit(5000);
+  if (error) throw new Error(`Не удалось загрузить историю ответов: ${error.message}`);
+  return repetitionByWord(data ?? []);
 }
 
 /**
- * Слова для фраз сессии. Если слов меньше, чем фраз, слова повторяются —
- * AI составит для них фразы в разном контексте (US-4). Порядок случайный.
- * Взвешивание слов с ошибками (US-5) — в задаче ET-23.
+ * Слова для фраз сессии (US-4, US-5): слова с ошибками в последних ответах выбираются чаще.
+ * Если слов меньше, чем фраз, каждое слово попадает хотя бы раз, остальные фразы — взвешенно с повторами;
+ * для повторяющихся слов AI составит фразы в разном рабочем контексте.
  */
-export function pickTargets(words: Word[], count: number): Word[] {
-  if (words.length === 0) return [];
-  const order = shuffle(words);
-  const result: Word[] = [];
-  while (result.length < count) {
-    for (const w of order) {
-      if (result.length >= count) break;
-      result.push(w);
-    }
-  }
-  return shuffle(result);
+export function pickTargets(words: Word[], count: number, repetition: Map<string, WordRepetition>): Word[] {
+  return weightedPick(words, (w) => repetition.get(w.id)?.weight ?? 1, count);
 }
 
 export function wordsInScope(words: Word[], folderId: string | null): Word[] {
@@ -67,7 +61,7 @@ export async function startSession(folderId: string | null, count: PhraseCount):
   const words = wordsInScope(await listWords(), folderId);
   if (words.length === 0) throw new TrainingError("В выбранном наборе нет слов.");
 
-  const targets = pickTargets(words, count);
+  const targets = pickTargets(words, count, await loadRepetition());
   let phrases: GeneratedPhrase[];
   try {
     phrases = await getAi().generatePhrases(
