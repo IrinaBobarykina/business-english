@@ -67,7 +67,8 @@ export async function Summary({ session }: { session: Session }) {
 
         {hard.size > 0 && (
           <section aria-labelledby="hard-title" className="flex flex-col gap-2.5">
-            <h2 id="hard-title" className="text-base font-semibold">Над чем поработать</h2>
+            <h2 id="hard-title" className="text-base font-semibold">Повторим чаще</h2>
+            <p className="text-sm leading-[1.45] text-muted">Эти слова будут чаще попадать в следующие сессии.</p>
             <ul className="flex flex-col">
               {[...hard.values()].map((a) => (
                 <li key={a.word_id} className="flex min-h-14 items-center justify-between gap-3 border-b border-line">
