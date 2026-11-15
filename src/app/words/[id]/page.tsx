@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { BackLink, Page } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
+import { listFolders } from "@/lib/folders";
 import { getWord } from "@/lib/words";
 import { EditWordForm } from "./edit-word-form";
 
@@ -8,7 +9,7 @@ import { EditWordForm } from "./edit-word-form";
 export default async function WordPage({ params }: PageProps<"/words/[id]">) {
   await requireSession();
   const { id } = await params;
-  const word = await getWord(id);
+  const [word, folders] = await Promise.all([getWord(id), listFolders()]);
   if (!word) notFound();
 
   const addedAt = new Date(word.created_at).toLocaleDateString("ru-RU", {
@@ -27,7 +28,7 @@ export default async function WordPage({ params }: PageProps<"/words/[id]">) {
         </h1>
         <p className="text-sm text-muted">Добавлено {addedAt}</p>
       </header>
-      <EditWordForm word={word} />
+      <EditWordForm word={word} folders={folders.map(({ id, name }) => ({ id, name }))} />
     </Page>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { FolderSelect, type FolderOption } from "@/components/folder-select";
 import { ErrorBox, buttonPrimary, buttonSecondary, inputBase } from "@/components/ui";
 import { MAX_NOTE_LENGTH, MAX_TERM_LENGTH, MAX_TRANSLATION_LENGTH } from "@/lib/word-parse";
 import type { Word } from "@/lib/words";
 import { deleteWordAction, updateWordAction, type FormState } from "../actions";
 
-export function EditWordForm({ word }: { word: Word }) {
+export function EditWordForm({ word, folders }: { word: Word; folders: FolderOption[] }) {
   const [state, action, pending] = useActionState<FormState, FormData>(
     updateWordAction.bind(null, word.id),
     undefined,
@@ -60,6 +61,8 @@ export function EditWordForm({ word }: { word: Word }) {
             className={`${inputBase} resize-y py-3 leading-normal`}
           />
         </div>
+
+        <FolderSelect folders={folders} defaultValue={word.folder_id ?? ""} />
 
         {state?.error && <ErrorBox>{state.error}</ErrorBox>}
 

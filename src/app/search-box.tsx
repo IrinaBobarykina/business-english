@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 // Поиск по словам (US-2): строка поиска меняет параметр ?q=, список фильтруется на сервере.
-export function SearchBox({ initialQuery }: { initialQuery: string }) {
+export function SearchBox({ initialQuery, folderId }: { initialQuery: string; folderId?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [value, setValue] = useState(initialQuery);
@@ -21,7 +21,11 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
     timer.current = setTimeout(() => {
       const q = next.trim();
       startTransition(() => {
-        router.replace(q ? `${pathname}?q=${encodeURIComponent(q)}` : pathname, { scroll: false });
+        const params = new URLSearchParams();
+        if (folderId) params.set("folder", folderId);
+        if (q) params.set("q", q);
+        const qs = params.toString();
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
       });
     }, 250);
   }
