@@ -1,28 +1,22 @@
 import "server-only";
-import { getSupabase } from "@/lib/supabase";
+import { FOREIGN_KEY_VIOLATION, UNIQUE_VIOLATION, UUID, db } from "@/lib/db";
 import { normalizeTerm, type WordEntry } from "@/lib/word-parse";
 
-// Доступ к таблице words (US-1, US-2). Вызывается только из серверного кода после requireSession().
+// Доступ к таблице words (US-1, US-2, US-3). Вызывается только из серверного кода после requireSession().
 
 export type Word = {
   id: string;
   term: string;
   translation: string | null;
   note: string | null;
+  folder_id: string | null;
   created_at: string;
 };
 
-const WORD_COLUMNS = "id, term, translation, note, created_at";
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const UNIQUE_VIOLATION = "23505";
+const WORD_COLUMNS = "id, term, translation, note, folder_id, created_at";
 
 export class DuplicateWordError extends Error {}
-
-function db() {
-  const client = getSupabase();
-  if (!client) throw new Error("База данных не настроена: нет SUPABASE_URL или SUPABASE_SECRET_KEY");
-  return client;
-}
+export class MissingFolderError extends Error {}
 
 /** Все слова, новые сверху. Для одного пользователя список небольшой, поиск — на сервере в памяти. */
 export async function listWords(): Promise<Word[]> {
@@ -50,8 +44,8 @@ export async function getWord(id: string): Promise<Word | null> {
   return data?.[0] ?? null;
 }
 
-/** Добавляет слова; уже существующие пропускает. Возвращает число добавленных. */
-export async function addWords(entries: WordEntry[]): Promise<number> {
+/** Добавляет слова в папку (или без папки); уже существующие пропускает. Возвращает число добавленных. */
+export async function addWords(entries: WordEntry[], folderId: string | null = null): Promise<number> {
   if (entries.length === 0) return 0;
   // В одной вставке now() у всех строк одинаковый, и порядок в списке «новые сверху» стал бы случайным.
   // Поэтому время задаётся явно с шагом в 1 мс: слова из одного списка идут в том порядке, в каком их ввели.
@@ -59,11 +53,13 @@ export async function addWords(entries: WordEntry[]): Promise<number> {
   const rows = entries.map((e, i) => ({
     term: e.term,
     translation: e.translation,
+    folder_id: folderId,
     created_at: new Date(base + (entries.length - 1 - i)).toISOString(),
   }));
 
   const { error } = await db().from("words").insert(rows);
   if (!error) return rows.length;
+  if (error.code === FOREIGN_KEY_VIOLATION) throw new MissingFolderError("Папка не найдена — возможно, её удалили.");
   if (error.code !== UNIQUE_VIOLATION) throw new Error(`Не удалось добавить слова: ${error.message}`);
 
   // Кто-то добавил то же слово между проверкой и сохранением: добавляем по одному, пропуская дубликаты.
@@ -78,11 +74,12 @@ export async function addWords(entries: WordEntry[]): Promise<number> {
 
 export async function updateWord(
   id: string,
-  fields: { term: string; translation: string | null; note: string | null },
+  fields: { term: string; translation: string | null; note: string | null; folder_id: string | null },
 ): Promise<void> {
   if (!UUID.test(id)) throw new Error("Слово не найдено");
   const { error } = await db().from("words").update(fields).eq("id", id);
   if (error?.code === UNIQUE_VIOLATION) throw new DuplicateWordError("Такое слово уже есть в списке");
+  if (error?.code === FOREIGN_KEY_VIOLATION) throw new MissingFolderError("Папка не найдена — возможно, её удалили.");
   if (error) throw new Error(`Не удалось сохранить слово: ${error.message}`);
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { FolderSelect, type FolderOption } from "@/components/folder-select";
 import { ErrorBox, buttonPrimary } from "@/components/ui";
 import { wordsRu } from "@/lib/plural";
 import { MAX_LINES, planAdd } from "@/lib/word-parse";
@@ -13,7 +14,15 @@ function listPreview(items: string[], limit = 8): string {
   return items.length > limit ? `${shown} и ещё ${items.length - limit}` : shown;
 }
 
-export function AddWordsForm({ existingTerms }: { existingTerms: string[] }) {
+export function AddWordsForm({
+  existingTerms,
+  folders,
+  defaultFolder,
+}: {
+  existingTerms: string[];
+  folders: FolderOption[];
+  defaultFolder: string;
+}) {
   const [text, setText] = useState("");
   const [state, action, pending] = useActionState<FormState, FormData>(addWordsAction, undefined);
   // Тот же расчёт, что и на сервере: что добавится, что уже есть в списке.
@@ -46,6 +55,8 @@ export function AddWordsForm({ existingTerms }: { existingTerms: string[] }) {
             className="h-[232px] w-full resize-y rounded-xl border border-line-strong bg-white p-3.5 text-base leading-[1.6] text-ink placeholder:text-muted/60"
           />
         </div>
+
+        <FolderSelect folders={folders} defaultValue={defaultFolder} />
 
         {hasInput && (
           <div id="words-preview" aria-live="polite" className="flex flex-col gap-2 rounded-xl bg-accent-soft px-4 py-3.5">
