@@ -27,6 +27,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Статика Next.js и иконка доступны без входа, всё остальное — только после PIN-кода.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg).*)"],
+  // Статика Next.js, иконки и манифест (нужны для установки на экран «Домой») доступны без входа,
+  // всё остальное — только после PIN-кода.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest|icons/).*)"],
 };
