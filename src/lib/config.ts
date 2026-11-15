@@ -38,8 +38,22 @@ export function getAuthConfig(): AuthConfig | null {
   };
 }
 
+/**
+ * Адрес проекта Supabase. Берётся только адрес сайта (https://abcdefgh.supabase.co):
+ * если при копировании захватился путь вроде /rest/v1/, он отбрасывается, иначе запросы уходят не туда.
+ */
+export function normalizeSupabaseUrl(raw: string): string | null {
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
 export function getSupabaseConfig(): SupabaseConfig | null {
-  const url = process.env.SUPABASE_URL?.trim();
+  const url = normalizeSupabaseUrl(process.env.SUPABASE_URL ?? "");
   const secretKey = process.env.SUPABASE_SECRET_KEY?.trim();
   if (!url || !secretKey) return null;
   return { url, secretKey };
