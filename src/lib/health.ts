@@ -13,7 +13,9 @@ export async function getDbStatus(): Promise<DbStatus> {
   if (!db) return { state: "not_configured" };
 
   try {
-    const { count, error } = await db.from("words").select("id", { count: "exact", head: true });
+    // GET, а не HEAD: на HEAD-запрос с неверным адресом клиент Supabase не возвращает ошибку
+    // (пустой ответ 404 считается успехом), и проверка показала бы «подключена» при неработающей базе.
+    const { count, error } = await db.from("words").select("id", { count: "exact" }).limit(1);
     if (!error) return { state: "ok", wordCount: count ?? 0 };
     // PGRST205 / 42P01 — таблицы нет: SQL-миграция ещё не выполнена.
     if (error.code === "PGRST205" || error.code === "42P01") return { state: "no_schema" };

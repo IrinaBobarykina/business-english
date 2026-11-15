@@ -89,7 +89,7 @@ export default async function WordsPage({ searchParams }: PageProps<"/">) {
         <main className="flex flex-col gap-5 px-5 pt-7">
           <h1 className="font-serif text-[30px] leading-tight font-semibold">Мои слова</h1>
           <ErrorBox>
-            Не удалось загрузить слова. {e instanceof Error ? e.message : ""}{" "}
+            {e instanceof Error ? e.message : "Не удалось загрузить слова."}{" "}
             <Link href="/status" className="underline">Проверить состояние приложения</Link>
           </ErrorBox>
         </main>
