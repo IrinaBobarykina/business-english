@@ -1,5 +1,6 @@
 import { requireSession } from "@/lib/auth";
-import { getDbStatus, getDeployInfo, type DbStatus } from "@/lib/health";
+import { getAi } from "@/lib/ai";
+import { getDbStatus, getDeployInfo, getTrainingSchemaStatus, type DbStatus } from "@/lib/health";
 import { BackLink, Page } from "@/components/ui";
 import { wordsRu } from "@/lib/plural";
 import { logout } from "../actions";
@@ -46,6 +47,8 @@ function StatusRow({ label, ok, text }: { label: string; ok: boolean; text: stri
 export default async function StatusPage() {
   await requireSession();
   const dbText = dbStatusText(await getDbStatus());
+  const trainingSchema = await getTrainingSchemaStatus();
+  const ai = getAi();
   const deploy = getDeployInfo();
 
   return (
@@ -59,6 +62,18 @@ export default async function StatusPage() {
         <ul aria-label="Состояние" className="rounded-[14px] border border-line bg-white px-4">
           <StatusRow label="Вход по PIN-коду" ok text="работает" />
           <StatusRow label="База данных" ok={dbText.ok} text={dbText.text} />
+          <StatusRow
+            label="Тренировки"
+            ok={trainingSchema === "ok"}
+            text={
+              trainingSchema === "ok"
+                ? "база готова"
+                : trainingSchema === "missing"
+                  ? "нужно выполнить SQL-миграцию 20261115160000_training_phrases.sql"
+                  : "не удалось проверить"
+            }
+          />
+          <StatusRow label="AI" ok={!ai.isStub} text={ai.isStub ? "не подключён, работает тестовая заглушка" : ai.name} />
           <StatusRow
             label="Деплой"
             ok

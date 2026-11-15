@@ -15,6 +15,12 @@
   --color-warn-bg: #faebdc;
   --color-warn-ink: #5c2f07;
   --color-ok: #1e6b43;
+  --color-ok-bg: #e1f0ea;
+  --color-ok-ink: #146b55;
+  --color-ok-strong: #12342b;
+  --color-bad-bg: #f8e1de;
+  --color-bad-ink: #8a2a1f;
+  --color-orange-ink: #8f4a0c;
 
   --font-sans: "Golos Text Variable", system-ui, sans-serif;
   --font-serif: "Literata Variable", Georgia, serif;

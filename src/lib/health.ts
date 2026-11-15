@@ -25,6 +25,20 @@ export async function getDbStatus(): Promise<DbStatus> {
   }
 }
 
+/** Выполнена ли миграция ET-22 (фразы тренировки в training_sessions). */
+export async function getTrainingSchemaStatus(): Promise<"ok" | "missing" | "unknown"> {
+  const db = getSupabase();
+  if (!db) return "unknown";
+  try {
+    const { error } = await db.from("training_sessions").select("id, current_index, phrases").limit(1);
+    if (!error) return "ok";
+    // 42703 — нет столбца; PGRST204/PGRST205 — нет столбца/таблицы в кеше схемы Data API.
+    return ["42703", "PGRST204", "PGRST205"].includes(error.code ?? "") ? "missing" : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 export function getDeployInfo() {
   const env = process.env.VERCEL_ENV;
   const sha = process.env.VERCEL_GIT_COMMIT_SHA;

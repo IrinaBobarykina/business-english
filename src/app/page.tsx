@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BookIcon } from "@/components/book-icon";
-import { ErrorBox, Page, PlusIcon, buttonPrimary } from "@/components/ui";
+import { ErrorBox, Page, PlusIcon, buttonPrimary, buttonSecondary } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { wordsRu } from "@/lib/plural";
 import { listFolders, type Folder } from "@/lib/folders";
@@ -158,6 +158,7 @@ export default async function WordsPage({ searchParams }: PageProps<"/">) {
   const shown = searchWords(inScope, query);
   const flash = flashMessage(params);
   const addHref = activeFolder ? `/words/add?folder=${activeFolder.id}` : "/words/add";
+  const trainHref = activeFolder ? `/train?folder=${activeFolder.id}` : "/train";
 
   return (
     <Page>
@@ -205,11 +206,23 @@ export default async function WordsPage({ searchParams }: PageProps<"/">) {
         </p>
       </main>
 
-      <footer className="sticky bottom-0 border-t border-line bg-paper px-5 pt-4 pb-7">
-        <Link href={addHref} className={buttonPrimary}>
+      <footer className="sticky bottom-0 flex gap-3 border-t border-line bg-paper px-5 pt-4 pb-7">
+        <Link href={addHref} className={`${buttonSecondary} flex-1 px-3`}>
           <PlusIcon />
           Добавить слова
         </Link>
+        {inScope.length > 0 ? (
+          <Link href={trainHref} className={`${buttonPrimary} flex-1 px-3`}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M8 5.5v13l10.5-6.5z" />
+            </svg>
+            Тренировать
+          </Link>
+        ) : (
+          <span aria-disabled="true" className={`${buttonPrimary} flex-1 cursor-not-allowed px-3 opacity-50`}>
+            Тренировать
+          </span>
+        )}
       </footer>
     </Page>
   );
