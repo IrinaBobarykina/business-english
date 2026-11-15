@@ -11,6 +11,10 @@ export function EditWordForm({ word }: { word: Word }) {
     updateWordAction.bind(null, word.id),
     undefined,
   );
+  // Поля управляемые: после ошибки сохранения введённый текст не сбрасывается.
+  const [term, setTerm] = useState(word.term);
+  const [translation, setTranslation] = useState(word.translation ?? "");
+  const [note, setNote] = useState(word.note ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -22,7 +26,8 @@ export function EditWordForm({ word }: { word: Word }) {
           <input
             id="term"
             name="term"
-            defaultValue={word.term}
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
             required
             maxLength={MAX_TERM_LENGTH}
             autoCapitalize="none"
@@ -35,7 +40,8 @@ export function EditWordForm({ word }: { word: Word }) {
           <input
             id="translation"
             name="translation"
-            defaultValue={word.translation ?? ""}
+            value={translation}
+            onChange={(e) => setTranslation(e.target.value)}
             maxLength={MAX_TRANSLATION_LENGTH}
             placeholder="Необязательно"
             className={`${inputBase} h-12`}
@@ -46,7 +52,8 @@ export function EditWordForm({ word }: { word: Word }) {
           <textarea
             id="note"
             name="note"
-            defaultValue={word.note ?? ""}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
             maxLength={MAX_NOTE_LENGTH}
             rows={3}
             placeholder="Например, пример из урока. Необязательно"

@@ -53,7 +53,14 @@ export async function getWord(id: string): Promise<Word | null> {
 /** Добавляет слова; уже существующие пропускает. Возвращает число добавленных. */
 export async function addWords(entries: WordEntry[]): Promise<number> {
   if (entries.length === 0) return 0;
-  const rows = entries.map((e) => ({ term: e.term, translation: e.translation }));
+  // В одной вставке now() у всех строк одинаковый, и порядок в списке «новые сверху» стал бы случайным.
+  // Поэтому время задаётся явно с шагом в 1 мс: слова из одного списка идут в том порядке, в каком их ввели.
+  const base = Date.now();
+  const rows = entries.map((e, i) => ({
+    term: e.term,
+    translation: e.translation,
+    created_at: new Date(base + (entries.length - 1 - i)).toISOString(),
+  }));
 
   const { error } = await db().from("words").insert(rows);
   if (!error) return rows.length;
